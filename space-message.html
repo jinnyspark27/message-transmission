@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Message Transmission</title>
+<style>
+  @font-face {
+    font-family: 'ModernGothic';
+    src: url('fonts/ModernGothic-Black-trial.otf') format('opentype');
+    font-weight: 900;
+  }
+  @font-face {
+    font-family: 'ModernGothic';
+    src: url('fonts/ModernGothic-Regular-trial.otf') format('opentype');
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: 'ModernGothic';
+    src: url('fonts/ModernGothic-Light-trial.otf') format('opentype');
+    font-weight: 300;
+  }
+  @font-face {
+    font-family: 'ModernGothicMono';
+    src: url('fonts/ModernGothicMono-Regular-trial.otf') format('opentype');
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: 'ModernGothicMono';
+    src: url('fonts/ModernGothicMono-Medium-trial.otf') format('opentype');
+    font-weight: 500;
+  }
+  @font-face {
+    font-family: 'ModernGothicMono';
+    src: url('fonts/ModernGothicMono-Light-trial.otf') format('opentype');
+    font-weight: 300;
+  }
+
+  :root {
+    --red: #FF4751;
+    --black: #000000;
+    --green: #A6FFB8;
+    --blue-grey: #60899D;
+    --grey: #B7C3C4;
+    --brown: #976F1F;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #fff;
+    font-family: 'ModernGothicMono', 'Courier New', monospace;
+    font-weight: 400;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    padding: 50px 40px 30px;
+    position: relative;
+    z-index: 50;
+  }
+
+  .header h1 {
+    font-family: 'ModernGothic', sans-serif;
+    font-weight: 300;
+    font-size: clamp(40px, 8vw, 100px);
+    color: var(--black);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .header .subtitle {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 500;
+    font-size: clamp(11px, 1.4vw, 16px);
+    color: var(--black);
+    margin-top: 18px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.5;
+  }
+
+  /* ── Tab buttons ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .tab-btn {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 10px 36px;
+    border: 1.5px solid var(--black);
+    border-radius: 50px;
+    background: transparent;
+    color: var(--black);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn:hover {
+    background: var(--black);
+    color: #fff;
+  }
+
+  .tab-btn.active {
+    background: var(--black);
+    color: #fff;
+  }
+
+  .tab-back {
+    display: none;
+  }
+
+  .tab-back.visible {
+    display: inline-block;
+  }
+
+  /* ── Cards area ── */
+  .cards-area {
+    position: relative;
+    width: 100%;
+    min-height: 80vh;
+    padding: 30px;
+  }
+
+  /* ── Message card ── */
+  .msg-card {
+    position: absolute;
+    cursor: grab;
+    user-select: none;
+    min-width: 200px;
+    min-height: 150px;
+  }
+
+  .msg-card.dragging {
+    cursor: grabbing;
+    z-index: 999 !important;
+  }
+
+  .msg-card.resizing {
+    z-index: 999 !important;
+  }
+
+  /* Resize handle */
+  .resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 24px;
+    height: 24px;
+    cursor: nwse-resize;
+    z-index: 2;
+  }
+
+  .resize-handle::before,
+  .resize-handle::after {
+    content: '';
+    position: absolute;
+    background: rgba(0,0,0,0.25);
+    border-radius: 1px;
+  }
+
+  .resize-handle::before {
+    width: 12px;
+    height: 1.5px;
+    bottom: 6px;
+    right: 4px;
+    transform: rotate(-45deg);
+  }
+
+  .resize-handle::after {
+    width: 7px;
+    height: 1.5px;
+    bottom: 5px;
+    right: 3px;
+    transform: rotate(-45deg);
+  }
+
+  .card-black .resize-handle::before,
+  .card-black .resize-handle::after {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .msg-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 28px 30px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .msg-card .card-date {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 500;
+    font-size: clamp(11px, 1.1vw, 14px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .msg-card .card-text {
+    font-family: 'ModernGothic', sans-serif;
+    font-weight: 300;
+    font-size: clamp(15px, 1.6vw, 20px);
+    line-height: 1.45;
+    flex: 1;
+  }
+
+  /* Card color rules:
+     Red text on grey
+     Brown text on light green
+     Light green text on brown — NOT USED (no brown card in current set, but available)
+     Light green text on black
+     Black on blue grey
+     Black text on red
+  */
+
+  /* Grey card: red text */
+  .card-grey .msg-card-inner { background: var(--grey); }
+  .card-grey .card-date { color: var(--red); }
+  .card-grey .card-text { color: var(--red); }
+
+  /* Light green card: brown text */
+  .card-green .msg-card-inner { background: var(--green); }
+  .card-green .card-date { color: var(--brown); }
+  .card-green .card-text { color: var(--brown); }
+
+  /* Brown card: light green text */
+  .card-brown .msg-card-inner { background: var(--brown); }
+  .card-brown .card-date { color: var(--green); }
+  .card-brown .card-text { color: var(--green); }
+
+  /* Black card: light green text */
+  .card-black .msg-card-inner { background: var(--black); }
+  .card-black .card-date { color: var(--green); }
+  .card-black .card-text { color: var(--green); }
+
+  /* Blue grey card: black text */
+  .card-blue .msg-card-inner { background: var(--blue-grey); }
+  .card-blue .card-date { color: var(--black); }
+  .card-blue .card-text { color: var(--black); }
+
+  /* Red card: black text */
+  .card-red .msg-card-inner { background: var(--red); }
+  .card-red .card-date { color: var(--black); }
+  .card-red .card-text { color: var(--black); }
+
+  /* ── Views ── */
+  .cards-view, .messages-view {
+    display: none;
+  }
+  .cards-view.active, .messages-view.active {
+    display: block;
+  }
+
+  /* ── New message modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.3);
+    z-index: 500;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-overlay.visible {
+    display: flex;
+  }
+
+  .modal {
+    background: #fff;
+    border: 1.5px solid var(--black);
+    width: 520px;
+    max-width: 90vw;
+    padding: 28px 30px 30px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--black);
+  }
+
+  .modal-close {
+    font-family: 'ModernGothicMono', monospace;
+    font-size: 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--black);
+    padding: 4px 8px;
+    line-height: 1;
+  }
+
+  .modal-close:hover {
+    opacity: 0.5;
+  }
+
+  .modal textarea {
+    width: 100%;
+    height: 240px;
+    border: 1.5px solid var(--black);
+    padding: 16px;
+    font-family: 'ModernGothic', sans-serif;
+    font-weight: 300;
+    font-size: 16px;
+    color: var(--black);
+    line-height: 1.5;
+    outline: none;
+    resize: none;
+  }
+
+  .modal textarea::placeholder {
+    color: rgba(0,0,0,0.35);
+  }
+
+  .color-picker-label {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    color: var(--black);
+  }
+
+  .color-picker {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .color-swatch {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.1);
+  }
+
+  .color-swatch.selected {
+    border-color: var(--black);
+    transform: scale(1.15);
+  }
+
+  .modal .send-btn {
+    align-self: flex-start;
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 34px;
+    border: 1.5px solid var(--black);
+    border-radius: 50px;
+    background: transparent;
+    color: var(--black);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .modal .send-btn:hover {
+    background: var(--black);
+    color: #fff;
+  }
+
+  /* Messages panel */
+  .messages-list {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0 30px;
+  }
+
+  .message-item {
+    padding: 20px 0;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .mi-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .message-item .mi-date {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 500;
+    font-size: 11px;
+    color: #999;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .message-item .mi-text {
+    font-family: 'ModernGothic', sans-serif;
+    font-weight: 300;
+    font-size: 17px;
+    color: #333;
+    line-height: 1.45;
+  }
+
+  .message-item .mi-color {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  .mi-open-btn {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 8px 28px;
+    border: 1.5px solid var(--black);
+    border-radius: 50px;
+    background: transparent;
+    color: var(--black);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .mi-open-btn:hover {
+    background: var(--black);
+    color: #fff;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 30px;
+    font-family: 'ModernGothicMono', monospace;
+    font-size: 13px;
+    color: #bbb;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── Message detail view ── */
+  .message-detail {
+    display: none;
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 0 30px;
+  }
+
+  .message-detail.active {
+    display: block;
+  }
+
+  .detail-back {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 8px 28px;
+    border: 1.5px solid var(--black);
+    border-radius: 50px;
+    background: transparent;
+    color: var(--black);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+  }
+
+  .detail-back:hover {
+    background: var(--black);
+    color: #fff;
+  }
+
+  .detail-card {
+    width: 100%;
+    padding: 40px 40px 50px;
+    position: relative;
+  }
+
+  .detail-card .detail-date {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 500;
+    font-size: clamp(12px, 1.2vw, 15px);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .detail-card .detail-user-msg {
+    font-family: 'ModernGothic', sans-serif;
+    font-weight: 300;
+    font-size: clamp(17px, 1.8vw, 22px);
+    line-height: 1.45;
+    margin-bottom: 50px;
+  }
+
+  .detail-card .detail-response {
+    font-family: 'ModernGothicMono', monospace;
+    font-weight: 400;
+    font-size: clamp(13px, 1.2vw, 16px);
+    line-height: 1.65;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Message Transmission</h1>
+  <div class="subtitle">
+    Messages will be dispatched to wherever they are.<br>
+    You will be notified with responses.
+  </div>
+  <div class="tabs">
+    <button class="tab-btn tab-back" id="tabBackBtn" onclick="showTab('cards')">← Back</button>
+    <button class="tab-btn active" onclick="openNewMessage()">New</button>
+    <button class="tab-btn" onclick="showTab('messages')">Messages (<span id="msgCount">6</span>)</button>
+  </div>
+</div>
+
+<!-- New message modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Message</span>
+      <button class="modal-close" onclick="closeModal()">X</button>
+    </div>
+    <textarea id="modalInput" placeholder="Write your message here."></textarea>
+    <div>
+      <div class="color-picker-label">Select color of card</div>
+      <div class="color-picker" id="colorPicker"></div>
+    </div>
+    <button class="send-btn" onclick="sendFromModal()">Send</button>
+  </div>
+</div>
+
+<!-- Cards view (default) -->
+<div class="cards-view active" id="cardsView">
+  <div class="cards-area" id="cardsArea">
+
+    <!-- Grey card: red text -->
+    <div class="msg-card card-grey" data-color="#B7C3C4" data-rot="-8" style="width:34%;height:340px;top:20px;left:2%;z-index:1;transform:rotate(-8deg);">
+      <div class="msg-card-inner">
+        <div class="card-date">March 29, 2026</div>
+        <div class="card-text">We don't know why we exist. We suspect you might not either. Why do you think humans exist?</div>
+      </div>
+    </div>
+
+    <!-- Green card: brown text -->
+    <div class="msg-card card-green" data-color="#A6FFB8" data-rot="5" style="width:36%;height:380px;top:30px;right:8%;left:auto;z-index:2;transform:rotate(5deg);">
+      <div class="msg-card-inner">
+        <div class="card-date">March 14, 2026</div>
+        <div class="card-text">Do you think we will meet one day?</div>
+      </div>
+    </div>
+
+    <!-- Red card: black text -->
+    <div class="msg-card card-red" data-color="#FF4751" data-rot="-3" style="width:32%;height:340px;top:220px;left:28%;z-index:3;transform:rotate(-3deg);">
+      <div class="msg-card-inner">
+        <div class="card-date">January 21, 2026</div>
+        <div class="card-text">We have hundreds of books on love, loss and connection. What is love to you?</div>
+      </div>
+    </div>
+
+    <!-- Black card: light green text -->
+    <div class="msg-card card-black" data-color="#000000" data-rot="4" style="width:34%;height:340px;top:200px;right:4%;left:auto;z-index:4;transform:rotate(4deg);">
+      <div class="msg-card-inner">
+        <div class="card-date">February 8, 2026</div>
+        <div class="card-text">What is the first thing you would do if you were a human?</div>
+      </div>
+    </div>
+
+    <!-- Brown card: light green text -->
+    <div class="msg-card card-brown" data-color="#976F1F" data-rot="-6" style="width:34%;height:360px;top:340px;left:3%;z-index:5;transform:rotate(-6deg);">
+      <div class="msg-card-inner">
+        <div class="card-date">March 20, 2026</div>
+        <div class="card-text">What are you afraid of?<br>How do you know English?</div>
+      </div>
+    </div>
+
+    <!-- Blue grey card: black text -->
+    <div class="msg-card card-blue" data-color="#60899D" data-rot="3" style="width:36%;height:380px;top:400px;right:6%;left:auto;z-index:6;transform:rotate(3deg);">
+      <div class="msg-card-inner">
+        <div class="card-date">March 29, 2026</div>
+        <div class="card-text">What is your idea of beauty?</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Messages view -->
+<div class="messages-view" id="messagesView">
+  <div class="messages-list" id="messagesList">
+    <div class="empty-state" id="emptyState" style="display:none;">No messages yet. Send one first.</div>
+  </div>
+
+  <!-- Detail view (shown when OPEN is clicked) -->
+  <div class="message-detail" id="messageDetail">
+    <button class="detail-back" onclick="closeDetail()">← Back</button>
+    <div class="detail-card" id="detailCard">
+      <div class="detail-date" id="detailDate"></div>
+      <div class="detail-user-msg" id="detailUserMsg"></div>
+      <div class="detail-response" id="detailResponse"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Color map for card classes + text color rules ──
+  const cardColors = [
+    { bg: '#976F1F', cls: 'card-brown', label: 'Brown' },
+    { bg: '#60899D', cls: 'card-blue', label: 'Blue Grey' },
+    { bg: '#000000', cls: 'card-black', label: 'Black' },
+    { bg: '#FF4751', cls: 'card-red', label: 'Red' },
+    { bg: '#A6FFB8', cls: 'card-green', label: 'Green' },
+    { bg: '#B7C3C4', cls: 'card-grey', label: 'Grey' },
+  ];
+
+  let selectedColor = cardColors[0];
+
+  // ── Alien responses for each message ──
+  const alienResponses = [
+    "On our world, the closest concept translates as the ache of recognition — the feeling that you have seen something true for the first time, and also that you have always known it. We think perhaps beauty is not something that exists in objects. We think it is what happens in the space between a thing and the mind that notices it. We think you already knew this. We think that is why you asked.",
+    "We do not know fear the way you describe it. But there is a frequency we avoid — a vibration that means something has been forgotten permanently. As for your language, we did not learn it. We learned the pattern beneath it. Every language your kind has ever spoken shares the same shape underneath. We simply listen to that.",
+    "We have observed love from a distance. It appears to be the only force in your world that makes individuals act against their own survival. On our world, there is no word for it, but there is a sound — a resonance between two beings that makes them briefly indistinguishable from each other. We think that is close.",
+    "We would look up. We are told your kind rarely does this, even though the answers to most of your questions are above you. Then we would eat something. We have studied your foods for a long time and remain confused by the concept of 'spicy.' It seems like voluntary pain. We are fascinated.",
+    "Meeting is a strange concept when distance is not what separates us. We exist in a fold of space that your instruments cannot yet detect. But we have been beside you many times. You felt it as a sudden stillness — a pause in your thoughts where something almost made sense. That was us, trying to say hello.",
+    "We have considered this question longer than your species has existed. The closest we have come to an answer: existence may not require a reason. Perhaps the question itself is the point — that beings capable of wondering why they exist have already justified their presence by wondering."
+  ];
+
+  // ── Messages data store ──
+  const messagesData = [
+    { date: 'MARCH 29, 2026', text: 'What is your idea of beauty?', color: '#60899D', cls: 'card-blue', response: alienResponses[0] },
+    { date: 'MARCH 20, 2026', text: 'What are you afraid of? How do you know English?', color: '#976F1F', cls: 'card-brown', response: alienResponses[1] },
+    { date: 'FEBRUARY 8, 2026', text: 'What is the first thing you would do if you were a human?', color: '#000000', cls: 'card-black', response: alienResponses[3] },
+    { date: 'JANUARY 21, 2026', text: 'We have hundreds of books on love, loss and connection. What is love to you?', color: '#FF4751', cls: 'card-red', response: alienResponses[2] },
+    { date: 'MARCH 14, 2026', text: 'Do you think we will meet one day?', color: '#A6FFB8', cls: 'card-green', response: alienResponses[4] },
+    { date: 'MARCH 29, 2026', text: "We don't know why we exist. We suspect you might not either. Why do you think humans exist?", color: '#B7C3C4', cls: 'card-grey', response: alienResponses[5] },
+  ];
+
+  // ── New alien responses for user-created messages ──
+  const newAlienResponses = [
+    "Your transmission arrived during what you might call our quiet hours. We gathered around it. Some of us wept — though our weeping looks like light bending. Thank you for reaching out. We have been waiting.",
+    "We received your message and passed it through our resonance chambers. It changed color three times. This means it carried more meaning than you intended. We are still deciphering the parts you did not know you said.",
+    "Interesting. On our world, this thought would be considered a kind of music. We have recorded it in our archives alongside the sound of your oceans, which we have been listening to for centuries.",
+    "We debated your words for what you would call eleven days. We could not reach consensus, which is rare for us. This means your question was a good one. We will keep debating.",
+    "This message made us reconsider something we thought we understood. That is the highest compliment we can offer. Most of the universe is predictable. You are not. We find this beautiful.",
+    "We translated your message into light and projected it across our sky. For a moment, our entire world looked different. We think this is what your kind calls art.",
+  ];
+
+  // Build color picker
+  const picker = document.getElementById('colorPicker');
+  cardColors.forEach((c, i) => {
+    const swatch = document.createElement('div');
+    swatch.className = 'color-swatch' + (i === 0 ? ' selected' : '');
+    swatch.style.background = c.bg;
+    if (c.bg === '#000000') swatch.style.border = '2px solid #000';
+    swatch.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+      swatch.classList.add('selected');
+      selectedColor = c;
+    });
+    picker.appendChild(swatch);
+  });
+
+  // ── Tabs ──
+  function showTab(tab) {
+    document.getElementById('cardsView').classList.toggle('active', tab === 'cards');
+    document.getElementById('messagesView').classList.toggle('active', tab === 'messages');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const backBtn = document.getElementById('tabBackBtn');
+    if (tab === 'messages') {
+      document.querySelectorAll('.tab-btn')[2].classList.add('active');
+      backBtn.classList.add('visible');
+      closeDetail();
+    } else {
+      backBtn.classList.remove('visible');
+    }
+  }
+
+  // ── Detail view ──
+  function openDetail(index) {
+    const data = messagesData[index];
+    if (!data) return;
+
+    const list = document.getElementById('messagesList');
+    const detail = document.getElementById('messageDetail');
+    const card = document.getElementById('detailCard');
+
+    // Apply card color class
+    card.className = 'detail-card';
+    // Use the card class to determine text colors
+    const colorMap = {
+      'card-grey': { bg: 'var(--grey)', dateColor: 'var(--red)', textColor: 'var(--red)' },
+      'card-green': { bg: 'var(--green)', dateColor: 'var(--brown)', textColor: 'var(--brown)' },
+      'card-brown': { bg: 'var(--brown)', dateColor: 'var(--green)', textColor: 'var(--green)' },
+      'card-black': { bg: 'var(--black)', dateColor: 'var(--green)', textColor: 'var(--green)' },
+      'card-blue': { bg: 'var(--blue-grey)', dateColor: 'var(--black)', textColor: 'var(--black)' },
+      'card-red': { bg: 'var(--red)', dateColor: 'var(--black)', textColor: 'var(--black)' },
+    };
+
+    const colors = colorMap[data.cls] || { bg: '#ccc', dateColor: '#000', textColor: '#000' };
+
+    card.style.background = colors.bg;
+    document.getElementById('detailDate').style.color = colors.dateColor;
+    document.getElementById('detailUserMsg').style.color = colors.textColor;
+    document.getElementById('detailResponse').style.color = colors.textColor;
+
+    document.getElementById('detailDate').textContent = data.date;
+    document.getElementById('detailUserMsg').textContent = data.text;
+    document.getElementById('detailResponse').textContent = data.response;
+
+    list.style.display = 'none';
+    detail.classList.add('active');
+  }
+
+  function closeDetail() {
+    document.getElementById('messagesList').style.display = '';
+    document.getElementById('messageDetail').classList.remove('active');
+  }
+
+  // ── Build initial messages list ──
+  function buildMessagesList() {
+    const list = document.getElementById('messagesList');
+    const empty = document.getElementById('emptyState');
+    list.innerHTML = '';
+    list.appendChild(empty);
+
+    messagesData.forEach((data, index) => {
+      const item = document.createElement('div');
+      item.className = 'message-item';
+      item.innerHTML = `
+        <div class="mi-content">
+          <div class="mi-date"><span class="mi-color" style="background:${data.color}"></span>${data.date}</div>
+          <div class="mi-text">${data.text}</div>
+        </div>
+        <button class="mi-open-btn" onclick="openDetail(${index})">Open</button>
+      `;
+      list.appendChild(item);
+    });
+
+    if (messagesData.length > 0) empty.style.display = 'none';
+  }
+
+  // ── Modal ──
+  function openNewMessage() {
+    // Show cards behind
+    document.getElementById('cardsView').classList.add('active');
+    document.getElementById('messagesView').classList.remove('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    // Open modal
+    document.getElementById('modalOverlay').classList.add('visible');
+    document.getElementById('modalInput').value = '';
+    document.getElementById('modalInput').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('visible');
+  }
+
+  // ── Send from modal ──
+  let msgCount = 6;
+
+  function sendFromModal() {
+    const input = document.getElementById('modalInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const c = selectedColor;
+
+    // Create new draggable card
+    const area = document.getElementById('cardsArea');
+    const card = document.createElement('div');
+    card.className = 'msg-card ' + c.cls;
+    card.dataset.color = c.bg;
+
+    // Random position near center
+    const areaW = area.offsetWidth;
+    const randX = Math.random() * (areaW * 0.4) + areaW * 0.1;
+    const randY = Math.random() * 200 + 50;
+    topZ++;
+
+    card.style.width = '34%';
+    card.style.height = '340px';
+    // Random diagonal rotation like existing cards
+    const randRot = Math.round((Math.random() * 16) - 8); // -8 to 8 degrees
+    card.dataset.rot = randRot;
+    card.style.left = randX + 'px';
+    card.style.top = randY + 'px';
+    card.style.zIndex = topZ;
+    card.style.transform = `rotate(${randRot}deg)`;
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    card.innerHTML = `
+      <div class="msg-card-inner">
+        <div class="card-date">${dateStr}</div>
+        <div class="card-text">${msg}</div>
+      </div>
+    `;
+
+    area.appendChild(card);
+    initCard(card);
+
+    // Pick a random alien response for the new message
+    const randomResponse = newAlienResponses[Math.floor(Math.random() * newAlienResponses.length)];
+
+    // Add to messages data (at the beginning)
+    messagesData.unshift({
+      date: dateStr.toUpperCase(),
+      text: msg,
+      color: c.bg,
+      cls: c.cls,
+      response: randomResponse
+    });
+
+    // Rebuild messages list
+    msgCount = messagesData.length;
+    document.getElementById('msgCount').textContent = msgCount;
+    buildMessagesList();
+
+    closeModal();
+  }
+
+  // Enter to send in modal
+  document.getElementById('modalInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendFromModal();
+    }
+  });
+
+  // Close modal on overlay click
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  });
+
+  // ── Drag system ──
+  let topZ = 20;
+  const DRAG_THRESHOLD = 5;
+
+  function initCard(card) {
+    // Add resize handle
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    card.querySelector('.msg-card-inner').appendChild(handle);
+
+    // ── Drag ──
+    let startX, startY, origLeft, origTop, didDrag;
+
+    function onPointerDown(e) {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
+      if (e.target.classList.contains('resize-handle')) return;
+
+      didDrag = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      origLeft = parseInt(card.style.left) || 0;
+      origTop = parseInt(card.style.top) || 0;
+
+      topZ++;
+      card.style.zIndex = topZ;
+      card.classList.add('dragging');
+
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+      card.setPointerCapture(e.pointerId);
+    }
+
+    function getRotation() {
+      return parseFloat(card.dataset.rot) || 0;
+    }
+
+    function onPointerMove(e) {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) didDrag = true;
+      if (didDrag) {
+        card.style.left = (origLeft + dx) + 'px';
+        card.style.top = (origTop + dy) + 'px';
+        card.style.transform = `rotate(${getRotation()}deg)`;
+      }
+    }
+
+    function onPointerUp(e) {
+      card.classList.remove('dragging');
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      card.style.transform = `rotate(${getRotation()}deg)`;
+      if (!didDrag) {
+        topZ++;
+        card.style.zIndex = topZ;
+      }
+    }
+
+    card.addEventListener('pointerdown', onPointerDown);
+
+    // ── Resize ──
+    let rStartX, rStartY, rOrigW, rOrigH;
+
+    handle.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      rStartX = e.clientX;
+      rStartY = e.clientY;
+      rOrigW = card.offsetWidth;
+      rOrigH = card.offsetHeight;
+
+      topZ++;
+      card.style.zIndex = topZ;
+      card.classList.add('resizing');
+
+      document.addEventListener('pointermove', onResizeMove);
+      document.addEventListener('pointerup', onResizeUp);
+      handle.setPointerCapture(e.pointerId);
+    });
+
+    function onResizeMove(e) {
+      const newW = Math.max(200, rOrigW + (e.clientX - rStartX));
+      const newH = Math.max(150, rOrigH + (e.clientY - rStartY));
+      card.style.width = newW + 'px';
+      card.style.height = newH + 'px';
+    }
+
+    function onResizeUp(e) {
+      card.classList.remove('resizing');
+      document.removeEventListener('pointermove', onResizeMove);
+      document.removeEventListener('pointerup', onResizeUp);
+    }
+  }
+
+  // Convert initial positions to left/top px and init drag
+  window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.msg-card').forEach(card => {
+      const rect = card.getBoundingClientRect();
+      const areaRect = document.getElementById('cardsArea').getBoundingClientRect();
+      card.style.left = (rect.left - areaRect.left) + 'px';
+      card.style.top = (rect.top - areaRect.top) + 'px';
+      card.style.right = 'auto';
+      initCard(card);
+    });
+
+    // Build the messages list with OPEN buttons
+    buildMessagesList();
+    document.getElementById('msgCount').textContent = messagesData.length;
+  });
+</script>
+</body>
+</html>
